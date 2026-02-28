@@ -1,0 +1,527 @@
+{% extends "base.html" %}
+
+{% block title %}Model Performance - Smart Retail Analytics Platform{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <h2 class="section-title">📊 Model Performance Dashboard</h2>
+    
+    <!-- Models Check Warning -->
+    {% if not models %}
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        Please train models first! 
+        <a href="/model_training" class="btn btn-primary ms-2">Go to Model Training</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Performance Content -->
+{% if models %}
+<div class="glass-card mb-4">
+    <h3 class="section-title">📈 Performance Overview</h3>
+    <div class="row">
+        <div class="col-md-6">
+            <h4>🎯 Model Comparison</h4>
+            <p class="text-muted">Compare performance metrics across all trained models</p>
+        </div>
+        <div class="col-md-6">
+            <div id="comparisonChart"></div>
+        </div>
+    </div>
+</div>
+
+<div class="glass-card mb-4">
+    <div class="sticky-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h3 class="section-title mb-0">� Model Performance Dashboard</h3>
+            <button class="btn btn-primary" onclick="toggleComparisonChart()">
+                <i class="fas fa-chart-bar" id="chartIcon"></i> <span id="chartText">Hide Chart</span>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Comparison Chart -->
+    <div class="glass-card mb-4" id="comparisonCard">
+        <h4 class="mb-3">📈 Performance Comparison</h4>
+        <div id="comparisonChart"></div>
+    </div>
+    
+    <!-- Model Metrics Sections -->
+    <div id="detailedMetrics"></div>
+</div>
+
+<div class="glass-card">
+    <h3 class="section-title">📊 Overall Summary</h3>
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">Total Models</div>
+                <div class="metric-value" id="totalModels">-</div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">Avg Performance</div>
+                <div class="metric-value" id="avgPerformance">-</div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="metric-card">
+                <div class="metric-label">Status</div>
+                <div class="metric-value">✅ Ready</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- No Models Message -->
+{% if not models %}
+<div class="glass-card text-center">
+    <div style="font-size: 4rem; margin-bottom: 2rem;">📊</div>
+    <h3>Model Performance Unavailable</h3>
+    <p>Please train models first to view performance metrics.</p>
+</div>
+{% endif %}
+
+<!-- Loading Message -->
+<div id="loadingMessage" class="text-center" style="display: none;">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-2">Loading performance metrics...</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Load performance data when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    if ({{ 'true' if models else 'false' }}) {
+        loadPerformanceData();
+    }
+});
+
+function loadPerformanceData() {
+    document.getElementById('loadingMessage').style.display = 'block';
+    
+    fetch('/get_performance')
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('loadingMessage').style.display = 'none';
+        
+        if (data.success) {
+            // Display comparison chart
+            Plotly.newPlot('comparisonChart', JSON.parse(data.comparison_chart));
+            
+            // Display detailed metrics
+            displayDetailedMetrics(data.performance_metrics);
+            
+            // Display summary
+            document.getElementById('totalModels').textContent = data.summary.total_models;
+            document.getElementById('avgPerformance').textContent = data.summary.avg_performance.toFixed(3);
+            
+        } else {
+            showError(data.error);
+        }
+    })
+    .catch(error => {
+        document.getElementById('loadingMessage').style.display = 'none';
+        showError('Network error: ' + error.message);
+    });
+}
+
+function displayDetailedMetrics(metrics) {
+    const metricsHtml = Object.entries(metrics).map(([model, modelMetrics]) => {
+        const modelTitle = model.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        
+        // Generate metrics content based on model type
+        let metricsContent = '';
+        
+        if (model.includes('sales_prediction')) {
+            metricsContent = `
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="metric-label">Test R² Score</div>
+                        <div class="metric-value">${modelMetrics.test_r2 ? modelMetrics.test_r2.toFixed(4) : 'N/A'}</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Test RMSE</div>
+                        <div class="metric-value">${modelMetrics.test_rmse ? modelMetrics.test_rmse.toFixed(4) : 'N/A'}</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Train R² Score</div>
+                        <div class="metric-value">${modelMetrics.train_r2 ? modelMetrics.train_r2.toFixed(4) : 'N/A'}</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Train RMSE</div>
+                        <div class="metric-value">${modelMetrics.train_rmse ? modelMetrics.train_rmse.toFixed(4) : 'N/A'}</div>
+                    </div>
+                </div>
+            `;
+        } else if (model.includes('purchase_decision')) {
+            metricsContent = `
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="metric-label">Test Accuracy</div>
+                        <div class="metric-value">${modelMetrics.test_accuracy ? (modelMetrics.test_accuracy * 100).toFixed(2) + '%' : 'N/A'}</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Train Accuracy</div>
+                        <div class="metric-value">${modelMetrics.train_accuracy ? (modelMetrics.train_accuracy * 100).toFixed(2) + '%' : 'N/A'}</div>
+                    </div>
+                    ${modelMetrics.feature_importance ? `
+                    <div class="metric-item full-width">
+                        <div class="metric-label">📈 Top Features</div>
+                        <div class="features-grid">
+                            ${Object.entries(modelMetrics.feature_importance).slice(0, 6).map(([feature, importance]) => 
+                                `<div class="feature-item">
+                                    <div class="feature-name">${feature}</div>
+                                    <div class="feature-importance">${importance.toFixed(3)}</div>
+                                </div>`
+                            ).join('')}
+                        </div>
+                    </div>` : ''}
+                </div>
+            `;
+        } else if (model.includes('loyalty_prediction')) {
+            metricsContent = `
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="metric-label">Optimal K</div>
+                        <div class="metric-value">${modelMetrics.optimal_k || 'N/A'}</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Test Accuracy</div>
+                        <div class="metric-value">${modelMetrics.test_accuracy ? (modelMetrics.test_accuracy * 100).toFixed(2) + '%' : 'N/A'}</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Train Accuracy</div>
+                        <div class="metric-value">${modelMetrics.train_accuracy ? (modelMetrics.train_accuracy * 100).toFixed(2) + '%' : 'N/A'}</div>
+                    </div>
+                    ${modelMetrics.feature_importance ? `
+                    <div class="metric-item full-width">
+                        <div class="metric-label">📈 Top Features</div>
+                        <div class="features-grid">
+                            ${Object.entries(modelMetrics.feature_importance).slice(0, 6).map(([feature, importance]) => 
+                                `<div class="feature-item">
+                                    <div class="feature-name">${feature}</div>
+                                    <div class="feature-importance">${importance.toFixed(3)}</div>
+                                </div>`
+                            ).join('')}
+                        </div>
+                    </div>` : ''}
+                </div>
+            `;
+        } else if (model.includes('customer_segmentation')) {
+            metricsContent = `
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="metric-label">Number of Clusters</div>
+                        <div class="metric-value">${modelMetrics.n_clusters || 'N/A'}</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Inertia Score</div>
+                        <div class="metric-value">${modelMetrics.inertia_score ? modelMetrics.inertia_score.toFixed(4) : 'N/A'}</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Silhouette Score</div>
+                        <div class="metric-value">${modelMetrics.silhouette_score ? modelMetrics.silhouette_score.toFixed(4) : 'N/A'}</div>
+                    </div>
+                </div>
+            `;
+        } else {
+            metricsContent = `
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="metric-label">No specific metrics available</div>
+                        <div class="metric-value">N/A</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        return `
+            <div class="glass-card mb-4 model-section">
+                <h4 class="model-title">
+                    <i class="model-icon">${getModelIcon(model)}</i>
+                    ${modelTitle}
+                </h4>
+                <div class="model-content">
+                    ${metricsContent}
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    document.getElementById('detailedMetrics').innerHTML = metricsHtml;
+    
+    // Create feature importance charts for models that have them
+    Object.entries(metrics).forEach(([model, modelMetrics]) => {
+        if (modelMetrics.feature_importance) {
+            setTimeout(() => {
+                const elementId = `featureImportance-${model}`;
+                const element = document.getElementById(elementId);
+                if (element) {
+                    const importance = modelMetrics.feature_importance;
+                    const features = Object.keys(importance).slice(0, 10);
+                    const values = features.map(f => importance[f]);
+                    
+                    const chartData = [{
+                        x: features,
+                        y: values,
+                        type: 'bar',
+                        marker: {
+                            color: '#8b5cf6'
+                        }
+                    }];
+                    
+                    const layout = {
+                        title: 'Feature Importance',
+                        xaxis: { title: 'Features' },
+                        yaxis: { title: 'Importance' },
+                        height: 300,
+                        margin: { l: 50, r: 50, t: 50, b: 100 }
+                    };
+                    
+                    Plotly.newPlot(elementId, chartData, layout);
+                }
+            }, 100); // Small delay to ensure DOM is ready
+        }
+    });
+}
+
+function toggleComparisonChart() {
+    const comparisonCard = document.getElementById('comparisonCard');
+    const chartIcon = document.getElementById('chartIcon');
+    const chartText = document.getElementById('chartText');
+    
+    if (comparisonCard.style.display === 'none') {
+        comparisonCard.style.display = 'block';
+        chartIcon.className = 'fas fa-chart-bar';
+        chartText.textContent = 'Hide Chart';
+    } else {
+        comparisonCard.style.display = 'none';
+        chartIcon.className = 'fas fa-chart-line';
+        chartText.textContent = 'Show Chart';
+    }
+}
+
+function getModelIcon(model) {
+    if (model.includes('sales_prediction')) return '📈';
+    if (model.includes('purchase_decision')) return '🎯';
+    if (model.includes('loyalty_prediction')) return '⭐';
+    if (model.includes('customer_segmentation')) return '👥';
+    return '📊';
+}
+
+function toggleAllMetrics() {
+    const accordions = document.querySelectorAll('.accordion-collapse');
+    const toggleIcon = document.getElementById('toggleIcon');
+    const toggleText = document.getElementById('toggleText');
+    
+    const allCollapsed = Array.from(accordions).every(acc => acc.classList.contains('collapse'));
+    
+    if (allCollapsed) {
+        // Expand all
+        accordions.forEach(acc => {
+            acc.classList.add('show');
+            const button = document.querySelector(`[data-bs-target="#${acc.id}"]`);
+            if (button) {
+                button.classList.remove('collapsed');
+                button.setAttribute('aria-expanded', 'true');
+            }
+        });
+        toggleIcon.className = 'fas fa-eye-slash';
+        toggleText.textContent = 'Hide All';
+    } else {
+        // Collapse all
+        accordions.forEach(acc => {
+            acc.classList.remove('show');
+            const button = document.querySelector(`[data-bs-target="#${acc.id}"]`);
+            if (button) {
+                button.classList.add('collapsed');
+                button.setAttribute('aria-expanded', 'false');
+            }
+        });
+        toggleIcon.className = 'fas fa-eye';
+        toggleText.textContent = 'Show All';
+    }
+}
+
+function showError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'alert alert-danger';
+    errorDiv.innerHTML = `
+        <i class="fas fa-exclamation-circle me-2"></i>
+        ${message}
+    `;
+    
+    document.querySelector('.container-fluid').insertBefore(errorDiv, document.querySelector('.container-fluid').firstChild);
+}
+</script>
+
+<style>
+.sticky-header {
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+    z-index: 1000;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+}
+
+.model-section {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.model-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 15px;
+}
+
+.model-icon {
+    font-size: 1.5rem;
+}
+
+.model-content {
+    color: #111827;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.metric-item {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 8px;
+    padding: 15px;
+    text-align: left;
+    transition: all 0.3s ease;
+}
+
+.metric-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
+}
+
+.metric-label {
+    font-size: 0.9rem;
+    color: #374151;
+    font-weight: 500;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.metric-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #000000;
+}
+
+.full-width {
+    grid-column: 1 / -1;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+}
+
+.feature-item {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 6px;
+    padding: 10px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.feature-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
+}
+
+.feature-name {
+    font-size: 0.85rem;
+    color: #374151;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.feature-importance {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111827;
+}
+
+.accordion-button {
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    padding: 1rem;
+    font-weight: 600;
+    color: #111827 !important;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.accordion-button:hover {
+    background: rgba(139, 92, 246, 0.1);
+}
+
+.accordion-collapse {
+    background-color: rgba(255, 255, 255, 0.98) !important;
+    color: #111827 !important;
+}
+
+.accordion-body {
+    color: #111827 !important;
+    background-color: rgba(255, 255, 255, 0.98) !important;
+}
+
+.metric-card {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 1px solid rgba(139, 92, 246, 0.2) !important;
+    color: #111827 !important;
+}
+
+.metric-value {
+    color: #000000 !important;
+    font-weight: bold !important;
+}
+
+.metric-label {
+    color: #374151 !important;
+    font-weight: 500 !important;
+}
+</style>
+
+.accordion-collapse {
+    background: var(--surface);
+    border-radius: 8px;
+    margin-top: 0.5rem;
+}
+
+.accordion-body {
+    padding: 1rem;
+}
+</style>
+{% endblock %}

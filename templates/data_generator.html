@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Data Generator - Smart Retail Analytics Platform{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <h2 class="section-title">📊 Dataset Management</h2>
+    
+    <!-- Data Generation Section -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h3>🎲 Generate Synthetic Data</h3>
+            <p class="text-muted">
+                Generate a comprehensive retail dataset with customer demographics, 
+                purchase behavior, and loyalty information.
+            </p>
+        </div>
+        <div class="col-md-4 text-center">
+            <button id="generateDataBtn" class="btn btn-primary btn-lg">
+                <i class="fas fa-sync me-2"></i>Generate Dataset
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner" class="text-center" style="display: none;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Generating synthetic retail data...</p>
+    </div>
+
+    <!-- Success Message -->
+    <div id="successMessage" class="alert alert-success" style="display: none;">
+        <i class="fas fa-check-circle me-2"></i>
+        <span id="successText"></span>
+    </div>
+
+    <!-- Error Message -->
+    <div id="errorMessage" class="alert alert-danger" style="display: none;">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        <span id="errorText"></span>
+    </div>
+</div>
+
+<!-- Dataset Preview -->
+<div id="datasetSection" style="display: none;">
+    <div class="glass-card mb-4">
+        <h3 class="section-title">📈 Dataset Preview</h3>
+        <div id="dataPreview"></div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="glass-card">
+                <h4 class="section-title">🔍 Data Overview</h4>
+                <div id="dataOverview"></div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="glass-card">
+                <h4 class="section-title">📊 Statistics</h4>
+                <div id="dataStats"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-card mb-4">
+        <h4 class="section-title">📋 Dataset Summary</h4>
+        <div class="row">
+            <div class="col-md-6">
+                <h5>📈 Numerical Features</h5>
+                <div id="numericalFeatures"></div>
+            </div>
+            <div class="col-md-6">
+                <h5>🏷️ Categorical Features</h5>
+                <div id="categoricalFeatures"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-card">
+        <h4 class="section-title">💾 Export Dataset</h4>
+        <a href="/download_data" class="btn btn-success">
+            <i class="fas fa-download me-2"></i>Download CSV
+        </a>
+    </div>
+</div>
+
+<!-- No Data Message -->
+{% if not data %}
+<div class="glass-card text-center">
+    <div style="font-size: 4rem; margin-bottom: 2rem;">📊</div>
+    <h3>No Dataset Available</h3>
+    <p>Click "Generate Dataset" to create synthetic retail data for analysis.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('generateDataBtn').addEventListener('click', function() {
+    const btn = this;
+    const spinner = document.getElementById('loadingSpinner');
+    const successMsg = document.getElementById('successMessage');
+    const errorMsg = document.getElementById('errorMessage');
+    const datasetSection = document.getElementById('datasetSection');
+    
+    // Hide messages and show spinner
+    btn.disabled = true;
+    spinner.style.display = 'block';
+    successMsg.style.display = 'none';
+    errorMsg.style.display = 'none';
+    
+    fetch('/generate_data', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        spinner.style.display = 'none';
+        btn.disabled = false;
+        
+        if (data.success) {
+            // Show success message
+            document.getElementById('successText').textContent = data.message;
+            successMsg.style.display = 'block';
+            
+            // Show dataset section
+            datasetSection.style.display = 'block';
+            
+            // Display data preview
+            document.getElementById('dataPreview').innerHTML = data.data_preview;
+            
+            // Display data overview
+            document.getElementById('dataOverview').innerHTML = `
+                <div class="table-responsive">
+                    ${data.data_preview}
+                </div>
+            `;
+            
+            // Display statistics
+            document.getElementById('dataStats').innerHTML = `
+                <div class="metric-card mb-3">
+                    <div class="metric-label">Total Records</div>
+                    <div class="metric-value">${data.data_summary.total_records.toLocaleString()}</div>
+                </div>
+                <div class="metric-card mb-3">
+                    <div class="metric-label">Total Features</div>
+                    <div class="metric-value">${data.data_summary.total_features}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Memory Usage</div>
+                    <div class="metric-value">${data.data_summary.memory_usage}</div>
+                </div>
+            `;
+            
+            // Display features (mock data for now)
+            document.getElementById('numericalFeatures').innerHTML = `
+                <ul class="list-unstyled">
+                    <li>• Customer_Age</li>
+                    <li>• Annual_Income</li>
+                    <li>• Monthly_Sales</li>
+                    <li>• Purchase_Frequency</li>
+                    <li>• Discount_Offered</li>
+                </ul>
+            `;
+            
+            document.getElementById('categoricalFeatures').innerHTML = `
+                <ul class="list-unstyled">
+                    <li>• Gender</li>
+                    <li>• Product_Category</li>
+                    <li>• Store_Location</li>
+                    <li>• Purchase_Decision</li>
+                    <li>• Loyalty_Category</li>
+                </ul>
+            `;
+            
+        } else {
+            // Show error message
+            document.getElementById('errorText').textContent = data.error;
+            errorMsg.style.display = 'block';
+        }
+    })
+    .catch(error => {
+        spinner.style.display = 'none';
+        btn.disabled = false;
+        document.getElementById('errorText').textContent = 'Network error: ' + error.message;
+        errorMsg.style.display = 'block';
+    });
+});
+</script>
+{% endblock %}

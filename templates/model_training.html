@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Model Training - Smart Retail Analytics Platform{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <h2 class="section-title">🤖 Model Training</h2>
+    
+    <!-- Training Status -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h3>🚀 Train Machine Learning Models</h3>
+            <p class="text-muted">
+                Train all 4 ML models: Linear Regression, Decision Tree, KNN, and K-Means clustering.
+            </p>
+        </div>
+        <div class="col-md-4 text-center">
+            <button id="trainModelsBtn" class="btn btn-primary btn-lg">
+                <i class="fas fa-play me-2"></i>Start Training
+            </button>
+        </div>
+    </div>
+
+    <!-- Data Check Warning -->
+    {% if not data_exists %}
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        Please generate dataset first! 
+        <a href="/data_generator" class="btn btn-primary ms-2">Go to Data Generator</a>
+    </div>
+    {% endif %}
+
+    <!-- Loading Spinner -->
+    <div id="trainingSpinner" class="text-center" style="display: none;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Training...</span>
+        </div>
+        <p class="mt-2">Training ML models... This may take a few moments.</p>
+        <div class="progress mt-3">
+            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                 role="progressbar" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <!-- Success Message -->
+    <div id="successMessage" class="alert alert-success" style="display: none;">
+        <i class="fas fa-check-circle me-2"></i>
+        <span id="successText"></span>
+    </div>
+
+    <!-- Error Message -->
+    <div id="errorMessage" class="alert alert-danger" style="display: none;">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        <span id="errorText"></span>
+    </div>
+</div>
+
+<!-- Training Pipeline Overview -->
+<div class="glass-card mb-4">
+    <h3 class="section-title">📋 Training Pipeline Overview</h3>
+    <div class="row">
+        <div class="col-md-3 mb-3">
+            <div class="feature-card">
+                <div class="feature-icon">📈</div>
+                <h4 class="feature-title">Linear Regression</h4>
+                <p class="feature-description">
+                    Predict monthly sales using customer demographics and behavior patterns
+                </p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="feature-card">
+                <div class="feature-icon">🌳</div>
+                <h4 class="feature-title">Decision Tree</h4>
+                <p class="feature-description">
+                    Classify purchase intent with interpretable decision rules
+                </p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h4 class="feature-title">K-Nearest Neighbors</h4>
+                <p class="feature-description">
+                    Categorize customers into Gold/Silver/Bronze tiers
+                </p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h4 class="feature-title">K-Means</h4>
+                <p class="feature-description">
+                    Group customers by behavior for targeted marketing
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Training Results -->
+<div id="trainingResults" style="display: none;">
+    <div class="glass-card">
+        <h3 class="section-title">📊 Training Results</h3>
+        <div id="performanceMetrics"></div>
+    </div>
+</div>
+
+<!-- No Models Message -->
+{% if not models_trained %}
+<div class="glass-card text-center">
+    <div style="font-size: 4rem; margin-bottom: 2rem;">🤖</div>
+    <h3>Models Not Trained Yet</h3>
+    <p>Click "Start Training" to train all machine learning models.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('trainModelsBtn').addEventListener('click', function() {
+    const btn = this;
+    const spinner = document.getElementById('trainingSpinner');
+    const successMsg = document.getElementById('successMessage');
+    const errorMsg = document.getElementById('errorMessage');
+    const results = document.getElementById('trainingResults');
+    const progressBar = document.getElementById('progressBar');
+    
+    // Hide messages and show spinner
+    btn.disabled = true;
+    spinner.style.display = 'block';
+    successMsg.style.display = 'none';
+    errorMsg.style.display = 'none';
+    
+    // Simulate progress
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress > 90) progress = 90;
+        progressBar.style.width = progress + '%';
+    }, 500);
+    
+    fetch('/train_models', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        clearInterval(progressInterval);
+        progressBar.style.width = '100%';
+        
+        setTimeout(() => {
+            spinner.style.display = 'none';
+            btn.disabled = false;
+            
+            if (data.success) {
+                // Show success message
+                document.getElementById('successText').textContent = data.message;
+                successMsg.style.display = 'block';
+                
+                // Show results
+                results.style.display = 'block';
+                displayPerformanceMetrics(data.performance_metrics);
+                
+            } else {
+                // Show error message
+                document.getElementById('errorText').textContent = data.error;
+                errorMsg.style.display = 'block';
+            }
+        }, 1000);
+    })
+    .catch(error => {
+        clearInterval(progressInterval);
+        spinner.style.display = 'none';
+        btn.disabled = false;
+        document.getElementById('errorText').textContent = 'Network error: ' + error.message;
+        errorMsg.style.display = 'block';
+    });
+});
+
+function displayPerformanceMetrics(metrics) {
+    const metricsHtml = Object.entries(metrics).map(([model, modelMetrics]) => {
+        const modelTitle = model.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        const metricsList = Object.entries(modelMetrics).map(([key, value]) => {
+            if (typeof value === 'number') {
+                return `<li><strong>${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> ${value.toFixed(4)}</li>`;
+            } else {
+                return `<li><strong>${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> ${value}</li>`;
+            }
+        }).join('');
+        
+        return `
+            <div class="glass-card mb-3">
+                <h4>🔍 ${modelTitle}</h4>
+                <ul>${metricsList}</ul>
+            </div>
+        `;
+    }).join('');
+    
+    document.getElementById('performanceMetrics').innerHTML = metricsHtml;
+}
+</script>
+{% endblock %}

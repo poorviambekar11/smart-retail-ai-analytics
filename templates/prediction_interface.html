@@ -1,0 +1,385 @@
+{% extends "base.html" %}
+
+{% block title %}Prediction Interface - Smart Retail Analytics Platform{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <h2 class="section-title">🔮 Prediction Interface</h2>
+    
+    <!-- Data Check Warning -->
+    {% if not data_exists %}
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        Please generate dataset first! 
+        <a href="/data_generator" class="btn btn-primary ms-2">Go to Data Generator</a>
+    </div>
+    {% endif %}
+    
+    {% if not models_trained %}
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        Please train models first! 
+        <a href="/model_training" class="btn btn-primary ms-2">Go to Model Training</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Prediction Tabs -->
+{% if data_exists and models_trained %}
+<div class="glass-card">
+    <ul class="nav nav-tabs" id="predictionTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="sales-tab" data-bs-toggle="tab" data-bs-target="#sales" type="button" role="tab">
+                📈 Sales Prediction
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="purchase-tab" data-bs-toggle="tab" data-bs-target="#purchase" type="button" role="tab">
+                🎯 Purchase Decision
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="loyalty-tab" data-bs-toggle="tab" data-bs-target="#loyalty" type="button" role="tab">
+                ⭐ Loyalty Prediction
+            </button>
+        </li>
+    </ul>
+    
+    <div class="tab-content" id="predictionTabContent">
+        <!-- Sales Prediction Tab -->
+        <div class="tab-pane fade show active" id="sales" role="tabpanel">
+            <h3 class="section-title">📈 Sales Prediction</h3>
+            <p class="text-muted">Enter customer details to predict their monthly sales amount.</p>
+            
+            <form id="salesPredictionForm">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Customer Age</label>
+                        <input type="number" class="form-control" name="customer_age" value="35" min="18" max="80">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Annual Income (₹)</label>
+                        <input type="number" class="form-control" name="annual_income" value="50000" min="10000" max="200000">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Purchase Frequency</label>
+                        <input type="number" class="form-control" name="purchase_frequency" value="5" min="1" max="20">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Discount Offered (%)</label>
+                        <input type="number" class="form-control" name="discount_offered" value="10" min="0" max="50" step="0.1">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Marketing Spend (₹)</label>
+                        <input type="number" class="form-control" name="marketing_spend" value="50" min="0" max="1000">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Previous Purchase Amount (₹)</label>
+                        <input type="number" class="form-control" name="previous_amount" value="500" min="0" max="10000">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Gender</label>
+                        <select class="form-control" name="gender">
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Product Category</label>
+                        <select class="form-control" name="product_category">
+                            <option value="Electronics">Electronics</option>
+                            <option value="Clothing">Clothing</option>
+                            <option value="Food">Food</option>
+                            <option value="Books">Books</option>
+                            <option value="Sports">Sports</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Store Location</label>
+                        <select class="form-control" name="store_location">
+                            <option value="Downtown">Downtown</option>
+                            <option value="Mall">Mall</option>
+                            <option value="Suburb">Suburb</option>
+                            <option value="Online">Online</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Customer Tenure (years)</label>
+                        <input type="number" class="form-control" name="customer_tenure" value="3" min="0" max="20">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-crystal-ball me-2"></i>Predict Sales
+                </button>
+            </form>
+        </div>
+        
+        <!-- Purchase Decision Tab -->
+        <div class="tab-pane fade" id="purchase" role="tabpanel">
+            <h3 class="section-title">🎯 Purchase Decision</h3>
+            <p class="text-muted">Predict whether a customer will make a purchase.</p>
+            
+            <form id="purchasePredictionForm">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Customer Age</label>
+                        <input type="number" class="form-control" name="customer_age" value="35" min="18" max="80">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Annual Income (₹)</label>
+                        <input type="number" class="form-control" name="annual_income" value="50000" min="10000" max="200000">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Purchase Frequency</label>
+                        <input type="number" class="form-control" name="purchase_frequency" value="5" min="1" max="20">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Discount Offered (%)</label>
+                        <input type="number" class="form-control" name="discount_offered" value="10" min="0" max="50" step="0.1">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Marketing Spend (₹)</label>
+                        <input type="number" class="form-control" name="marketing_spend" value="50" min="0" max="1000">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Previous Purchase Amount (₹)</label>
+                        <input type="number" class="form-control" name="previous_amount" value="500" min="0" max="10000">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Gender</label>
+                        <select class="form-control" name="gender">
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Product Category</label>
+                        <select class="form-control" name="product_category">
+                            <option value="Electronics">Electronics</option>
+                            <option value="Clothing">Clothing</option>
+                            <option value="Food">Food</option>
+                            <option value="Books">Books</option>
+                            <option value="Sports">Sports</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Store Location</label>
+                        <select class="form-control" name="store_location">
+                            <option value="Downtown">Downtown</option>
+                            <option value="Mall">Mall</option>
+                            <option value="Suburb">Suburb</option>
+                            <option value="Online">Online</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Customer Tenure (years)</label>
+                        <input type="number" class="form-control" name="customer_tenure" value="3" min="0" max="20">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-bullseye me-2"></i>Predict Purchase
+                </button>
+            </form>
+        </div>
+        
+        <!-- Loyalty Prediction Tab -->
+        <div class="tab-pane fade" id="loyalty" role="tabpanel">
+            <h3 class="section-title">⭐ Loyalty Prediction</h3>
+            <p class="text-muted">Predict customer loyalty category (Gold, Silver, Bronze).</p>
+            
+            <form id="loyaltyPredictionForm">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Customer Age</label>
+                        <input type="number" class="form-control" name="customer_age" value="35" min="18" max="80">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Annual Income (₹)</label>
+                        <input type="number" class="form-control" name="annual_income" value="50000" min="10000" max="200000">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Purchase Frequency</label>
+                        <input type="number" class="form-control" name="purchase_frequency" value="5" min="1" max="20">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Discount Offered (%)</label>
+                        <input type="number" class="form-control" name="discount_offered" value="10" min="0" max="50" step="0.1">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Marketing Spend (₹)</label>
+                        <input type="number" class="form-control" name="marketing_spend" value="50" min="0" max="1000">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Previous Purchase Amount (₹)</label>
+                        <input type="number" class="form-control" name="previous_amount" value="500" min="0" max="10000">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Gender</label>
+                        <select class="form-control" name="gender">
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Product Category</label>
+                        <select class="form-control" name="product_category">
+                            <option value="Electronics">Electronics</option>
+                            <option value="Clothing">Clothing</option>
+                            <option value="Food">Food</option>
+                            <option value="Books">Books</option>
+                            <option value="Sports">Sports</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Store Location</label>
+                        <select class="form-control" name="store_location">
+                            <option value="Downtown">Downtown</option>
+                            <option value="Mall">Mall</option>
+                            <option value="Suburb">Suburb</option>
+                            <option value="Online">Online</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Customer Tenure (years)</label>
+                        <input type="number" class="form-control" name="customer_tenure" value="3" min="0" max="20">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-star me-2"></i>Predict Loyalty
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Prediction Results -->
+<div id="predictionResults" class="glass-card" style="display: none;">
+    <h3 class="section-title">🎯 Prediction Results</h3>
+    <div id="resultContent"></div>
+</div>
+{% endif %}
+
+<!-- No Data/Models Message -->
+{% if not data_exists or not models_trained %}
+<div class="glass-card text-center">
+    <div style="font-size: 4rem; margin-bottom: 2rem;">🔮</div>
+    <h3>Prediction Interface Unavailable</h3>
+    <p>Please generate data and train models before making predictions.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Handle form submissions
+document.getElementById('salesPredictionForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    makePrediction('sales', this);
+});
+
+document.getElementById('purchasePredictionForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    makePrediction('purchase', this);
+});
+
+document.getElementById('loyaltyPredictionForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    makePrediction('loyalty', this);
+});
+
+function makePrediction(type, form) {
+    const formData = new FormData(form);
+    const input_data = {};
+    
+    // Convert form data to object
+    for (let [key, value] of formData.entries()) {
+        if (key.includes('income') || key.includes('spend') || key.includes('amount') || key.includes('discount')) {
+            input_data[key] = parseFloat(value);
+        } else if (key.includes('age') || key.includes('frequency') || key.includes('tenure')) {
+            input_data[key] = parseInt(value);
+        } else {
+            input_data[key] = value;
+        }
+    }
+    
+    // Add required fields
+    input_data['Seasonal_Demand_Index'] = 1.0;
+    
+    fetch('/predict', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            type: type,
+            input_data: input_data
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayPredictionResult(type, data);
+        } else {
+            showError(data.error);
+        }
+    })
+    .catch(error => {
+        showError('Network error: ' + error.message);
+    });
+}
+
+function displayPredictionResult(type, data) {
+    const results = document.getElementById('predictionResults');
+    const content = document.getElementById('resultContent');
+    
+    results.style.display = 'block';
+    
+    let resultHtml = '';
+    
+    if (type === 'sales') {
+        resultHtml = `
+            <div class="metric-card">
+                <div class="metric-label">Predicted Monthly Sales</div>
+                <div class="metric-value">${data.formatted}</div>
+            </div>
+        `;
+    } else if (type === 'purchase') {
+        const color = data.prediction === 'Yes' ? 'success' : 'warning';
+        resultHtml = `
+            <div class="alert alert-${color}">
+                <i class="fas fa-bullseye me-2"></i>
+                <strong>Purchase Decision:</strong> ${data.prediction}
+            </div>
+        `;
+    } else if (type === 'loyalty') {
+        resultHtml = `
+            <div class="metric-card">
+                <div class="metric-label">Loyalty Category</div>
+                <div class="metric-value">${data.prediction}</div>
+            </div>
+        `;
+    }
+    
+    content.innerHTML = resultHtml;
+    
+    // Scroll to results
+    results.scrollIntoView({ behavior: 'smooth' });
+}
+
+function showError(message) {
+    const results = document.getElementById('predictionResults');
+    const content = document.getElementById('resultContent');
+    
+    results.style.display = 'block';
+    content.innerHTML = `
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            ${message}
+        </div>
+    `;
+}
+</script>
+{% endblock %}
